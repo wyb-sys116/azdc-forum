@@ -1,0 +1,13 @@
+{
+  "name": "azdc-forum",
+  "version": "1.0.0",
+  "description": "AZDC技术交流论坛",
+  "main": "服务器/server.js",
+  "scripts": {
+    "start": "node 服务器/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}
