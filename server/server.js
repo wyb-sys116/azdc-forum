@@ -5,10 +5,9 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 中间件（用express内置json解析替代body-parser，减少依赖）
+// 中间件
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
-
 // 托管前端静态文件
 app.use(express.static(path.join(__dirname, '../public')));
 
@@ -22,50 +21,68 @@ function initData() {
       posts: [
         {
           id: 1,
-          title: "深入理解 JavaScript 异步编程：从回调到 async/await",
-          category: "前端",
-          author: "技术大神",
-          avatar: "技",
+          title: "论坛使用指南：发帖规范与功能说明",
+          category: "综合",
+          author: "管理员",
+          avatar: "管",
           avatar_color: "from-blue-400 to-blue-600",
-          content: "在 JavaScript 开发中，异步编程是一个核心概念。本文将带你从最基础的回调函数，一步步理解 Promise，最终掌握 async/await 的使用方法。\n\n## 回调函数\n回调函数是 JavaScript 中最基础的异步处理方式，通过将函数作为参数传递，在异步操作完成后执行回调。\n\n## Promise\nPromise 是 ES6 引入的异步编程解决方案，解决了回调地狱的问题，提供了更优雅的链式调用。\n\n## async/await\nasync/await 是基于 Promise 的语法糖，让异步代码看起来像同步代码，大大提升了代码的可读性。",
-          views: 1567,
-          comments: 2,
-          likes: 128,
-          created_at: Date.now() - 7200000,
+          content: "欢迎来到AZDC论坛！本论坛包含综合、魔方、3D打印、乒乓球四大板块，请大家在对应板块发布相关内容，友好交流。\n\n## 发帖说明\n选择对应分类发布内容，标题清晰，内容详实即可。\n\n## 互动功能\n支持点赞、评论，注册账号后可以发布帖子和评论。",
+          views: 2345,
+          comments: 1,
+          likes: 156,
+          created_at: Date.now() - 86400000,
           commentList: [
-            { id: 1, author: "前端小白", avatar: "前", avatar_color: "from-green-400 to-green-600", content: "讲得太清楚了！终于理解了 async/await", created_at: Date.now() - 3600000, likes: 12 },
-            { id: 2, author: "码农小王", avatar: "码", avatar_color: "from-purple-400 to-purple-600", content: "建议补充一下 Promise.all 和 Promise.race 的用法", created_at: Date.now() - 1800000, likes: 8 }
+            { id: 1, author: "新用户", avatar: "新", avatar_color: "from-green-400 to-green-600", content: "支持！论坛界面很清爽", created_at: Date.now() - 3600000, likes: 8 }
           ]
         },
         {
           id: 2,
-          title: "Vue3 + TypeScript 最佳实践指南",
-          category: "前端",
-          author: "前端小姐姐",
-          avatar: "前",
-          avatar_color: "from-pink-400 to-pink-600",
-          content: "Vue3 已经发布有一段时间了，配合 TypeScript 使用可以大大提升开发效率和代码质量。本文分享一些在实际项目中总结的最佳实践。\n\n## 项目初始化\n使用 create-vue 脚手架创建项目，默认支持 TypeScript。\n\n## 组件写法\n推荐使用 <script setup> 语法糖，代码更简洁，类型推导更友好。",
-          views: 2341,
-          comments: 1,
-          likes: 234,
-          created_at: Date.now() - 18000000,
+          title: "三阶魔方CFOP速拧入门：Cross十字技巧",
+          category: "魔方",
+          author: "魔方达人",
+          avatar: "魔",
+          avatar_color: "from-purple-400 to-purple-600",
+          content: "CFOP是速拧三阶魔方的主流方法，第一步Cross十字是基础，直接影响后续速度。\n\n## 十字技巧\n尽量在底面完成十字，减少整体转动次数。\n\n## 进阶思路\n观察棱块位置，规划最少步数的十字解法，目标8步内完成。",
+          views: 1892,
+          comments: 3,
+          likes: 210,
+          created_at: Date.now() - 172800000,
           commentList: [
-            { id: 1, author: "Vue爱好者", avatar: "V", avatar_color: "from-green-400 to-green-600", content: "script setup 真的太香了", created_at: Date.now() - 14400000, likes: 23 }
+            { id: 1, author: "魔方新手", avatar: "新", avatar_color: "from-orange-400 to-orange-600", content: "十字总是做很慢，学习了", created_at: Date.now() - 7200000, likes: 15 },
+            { id: 2, author: "速拧爱好者", avatar: "速", avatar_color: "from-pink-400 to-pink-600", content: "推荐多练盲拧十字", created_at: Date.now() - 3600000, likes: 10 }
           ]
         },
         {
           id: 3,
-          title: "MySQL 索引优化完全指南",
-          category: "数据库",
-          author: "DBA老司机",
-          avatar: "D",
+          title: "FDM 3D打印机首层校准完整教程",
+          category: "3D打印",
+          author: "打印老司机",
+          avatar: "打",
           avatar_color: "from-orange-400 to-orange-600",
-          content: "数据库性能优化中，索引优化是最基础也是最重要的一环。本文将详细介绍 MySQL 索引的原理、类型以及优化技巧。\n\n## 索引原理\nB+树结构，支持范围查询和排序。\n\n## 索引类型\n主键索引、唯一索引、普通索引、联合索引、全文索引。",
-          views: 1890,
-          comments: 0,
-          likes: 189,
-          created_at: Date.now() - 86400000,
-          commentList: []
+          content: "3D打印首层是决定打印成败的关键，首层校准不好会出现翘边、脱床等问题。\n\n## 调平步骤\n先手动调平四个角，再用纸片法测试喷嘴距离。\n\n## 温度设置\nPLA耗材热床60℃，喷嘴200℃；ABS热床110℃，喷嘴240℃。",
+          views: 1654,
+          comments: 2,
+          likes: 178,
+          created_at: Date.now() - 259200000,
+          commentList: [
+            { id: 1, author: "新手入坑", avatar: "新", avatar_color: "from-green-400 to-green-600", content: "终于不翘边了，感谢", created_at: Date.now() - 86400000, likes: 20 }
+          ]
+        },
+        {
+          id: 4,
+          title: "乒乓球横拍反手拉球动作核心要点",
+          category: "乒乓球",
+          author: "乒乓爱好者",
+          avatar: "乒",
+          avatar_color: "from-red-400 to-red-600",
+          content: "反手拉球是横拍的核心技术，很多业余球友容易出现发力不畅的问题。\n\n## 动作框架\n沉肩坠肘，手腕内曲，用腰腹带动前臂发力。\n\n## 常见误区\n不要只用手臂甩，重心要跟上，击球点在身体侧前方。",
+          views: 2108,
+          comments: 4,
+          likes: 245,
+          created_at: Date.now() - 345600000,
+          commentList: [
+            { id: 1, author: "直拍选手", avatar: "直", avatar_color: "from-blue-400 to-blue-600", content: "横拍反手确实羡慕", created_at: Date.now() - 172800000, likes: 12 }
+          ]
         }
       ],
       users: []
@@ -106,7 +123,8 @@ function formatTime(timestamp) {
 initData();
 
 // ==================== API 接口 ====================
-// 获取帖子列表
+
+// 获取帖子列表（支持分类筛选、关键词搜索、排序）
 app.get('/api/posts', (req, res) => {
   try {
     const { category, keyword, sort = 'time' } = req.query;
