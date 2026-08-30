@@ -322,7 +322,7 @@ app.post('/api/login', (req, res) => {
   }
 });
 
-// 兜底路由：刷新页面时返回首页，避免404
+// 兜底路由：刷新页面时返回首页
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
