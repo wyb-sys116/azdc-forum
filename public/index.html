@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AZDC论坛 - 专业技术交流社区">
+    <title>AZDC论坛 - 技术交流社区</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        .post-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .nav-link.active { color: #3b82f6; border-bottom: 2px solid #3b82f6; }
+        .category-tag { transition: all 0.2s ease; }
+        .category-tag:hover { transform: scale(1.05); }
+        .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+        .avatar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .modal-content { animation: modalIn 0.2s ease-out; }
+        @keyframes modalIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 顶部导航 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2 cursor-pointer" onclick="showPage('home')">
+                    <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">A</span>
+                    </div>
+                    <span class="text-xl font-bold text-gray-800">AZDC 论坛</span>
+                </div>
+                
+                <nav class="hidden md:flex space-x-8">
+                    <a href="javascript:void(0)" class="nav-link active py-5 text-gray-700 font-medium" onclick="showPage('home')">首页</a>
+                    <a href="javascript:void(0)" class="nav-link py-5 text-gray-600 hover:text-blue-500 font-medium" onclick="showPage('board')">技术板块</a>
+                    <a href="javascript:void(0)" class="nav-link py-5 text-gray-600 hover:text-blue-500 font-medium" onclick="showPage('hot')">热门讨论</a>
+                    <a href="javascript:void(0)" class="nav-link py-5 text-gray-600 hover:text-blue-500 font-medium" onclick="showPage('about')">关于社区</a>
+                </nav>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="relative hidden sm:block">
+                        <input type="text" placeholder="搜索帖子..." 
+                               class="w-48 pl-10 pr-4 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:border-blue-400"
+                               id="searchInput" onkeyup="if(event.key==='Enter') searchPosts()">
+                        <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    
+                    <button onclick="openPostModal()" 
+                            class="hidden sm:flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white rounded-full text-sm font-medium hover:bg-blue-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        <span>发帖</span>
+                    </button>
+                    
+                    <div id="userArea">
+                        <button onclick="openLoginModal()" class="px-4 py-2 text-gray-600 hover:text-blue-500 text-sm font-medium">登录</button>
+                    </div>
+                    
+                    <button onclick="toggleMobileMenu()" class="md:hidden p-2 text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="mobileMenu" class="hidden md:hidden bg-white border-t">
+            <div class="px-4 py-3 space-y-2">
+                <a href="javascript:void(0)" class="block py-2 text-gray-700" onclick="showPage('home')">首页</a>
+                <a href="javascript:void(0)" class="block py-2 text-gray-600" onclick="showPage('board')">技术板块</a>
+                <a href="javascript:void(0)" class="block py-2 text-gray-600" onclick="showPage('hot')">热门讨论</a>
+                <a href="javascript:void(0)" class="block py-2 text-gray-600" onclick="showPage('about')">关于社区</a>
+                <button onclick="openPostModal()" class="w-full py-2 bg-blue-500 text-white rounded-lg text-sm mt-2">发帖</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="flex flex-col lg:flex-row gap-6">
+            <div class="flex-1">
+                <!-- 首页 -->
+                <div id="homePage">
+                    <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white mb-6">
+                        <div class="flex items-start space-x-4">
+                            <div class="p-2 bg-white/20 rounded-lg flex-shrink-0">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg mb-1">社区公告</h3>
+                                <p class="text-blue-100 text-sm">欢迎来到 AZDC 论坛！技术交流社区，友善讨论，共同成长。</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <button class="category-tag px-4 py-2 bg-blue-500 text-white rounded-full text-sm font-medium" onclick="filterCategory('all', this)">全部</button>
+                        <button class="category-tag px-4 py-2 bg-white text-gray-600 rounded-full text-sm font-medium border hover:border-blue-400" onclick="filterCategory('前端', this)">前端开发</button>
+                        <button class="category-tag px-4 py-2 bg-white text-gray-600 rounded-full text-sm font-medium border hover:border-blue-400" onclick="filterCategory('后端', this)">后端开发</button>
+                        <button class="category-tag px-4 py-2 bg-white text-gray-600 rounded-full text-sm font-medium border hover:border-blue-400" onclick="filterCategory('移动开发', this)">移动开发</button>
+                        <button class="category-tag px-4 py-2 bg-white text-gray-600 rounded-full text-sm font-medium border hover:border-blue-400" onclick="filterCategory('数据库', this)">数据库</button>
+                        <button class="category-tag px-4 py-2 bg-white text-gray-600 rounded-full text-sm font-medium border hover:border-blue-400" onclick="filterCategory('运维', this)">运维部署</button>
+                        <button class="category-tag px-4 py-2 bg-white text-gray-600 rounded-full text-sm font-medium border hover:border-blue-400" onclick="filterCategory('职场', this)">职场交流</button>
+                    </div>
+                    
+                    <div id="postList" class="space-y-4">
+                        <div class="text-center py-12 text-gray-400">加载中...</div>
+                    </div>
+                </div>
+                
+                <!-- 帖子详情 -->
+                <div id="postDetailPage" class="hidden">
+                    <button onclick="backToList()" class="flex items-center text-gray-600 hover:text-blue-500 mb-4">
+                        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        返回列表
+                    </button>
+                    
+                    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                        <div id="postDetail"></div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h4 class="font-bold text-gray-800 mb-4">评论 (<span id="commentCount">0</span>)</h4>
+                        <div class="mb-6">
+                            <textarea id="commentInput" rows="3" placeholder="写下你的评论..." 
+                                      class="w-full p-4 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 resize-none"></textarea>
+                            <div class="flex justify-end mt-2">
+                                <button onclick="submitComment()" class="px-6 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600">发表评论</button>
+                            </div>
+                        </div>
+                        <div id="commentList" class="space-y-4"></div>
+                    </div>
+                </div>
+                
+                <!-- 技术板块 -->
+                <div id="boardPage" class="hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">技术板块</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white rounded-xl p-6 hover:shadow-md cursor-pointer" onclick="filterCategory('前端')">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center"><span class="text-2xl">🎨</span></div>
+                                <div>
+                                    <h3 class="font-bold text-gray-800">前端开发</h3>
+                                    <p class="text-sm text-gray-500">HTML / CSS / JS / Vue / React</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-6 hover:shadow-md cursor-pointer" onclick="filterCategory('后端')">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center"><span class="text-2xl">⚙️</span></div>
+                                <div>
+                                    <h3 class="font-bold text-gray-800">后端开发</h3>
+                                    <p class="text-sm text-gray-500">Java / Python / Go / Node.js</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-6 hover:shadow-md cursor-pointer" onclick="filterCategory('移动开发')">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center"><span class="text-2xl">📱</span></div>
+                                <div>
+                                    <h3 class="font-bold text-gray-800">移动开发</h3>
+                                    <p class="text-sm text-gray-500">Android / iOS / Flutter / 小程序</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl p-6 hover:shadow-md cursor-pointer" onclick="filterCategory('数据库')">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center"><span class="text-2xl">🗄️</span></div>
+                                <div>
+                                    <h3 class="font-bold text-gray-800">数据库</h3>
+                                    <p class="text-sm text-gray-500">MySQL / MongoDB / Redis</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 热门讨论 -->
+                <div id="hotPage" class="hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">热门讨论</h2>
+                    <div id="hotPostList" class="space-y-4"></div>
+                </div>
+                
+                <!-- 关于社区 -->
+                <div id="aboutPage" class="hidden">
+                    <div class="bg-white rounded-xl shadow-sm p-8">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">关于 AZDC 论坛</h2>
+                        <div class="text-gray-600 space-y-4">
+                            <p>AZDC 论坛是专注于技术交流的开发者社区。</p>
+                            <h3 class="text-lg font-bold text-gray-800 mt-6">社区宗旨</h3>
+                            <ul class="list-disc pl-6 space-y-2">
+                                <li>分享技术知识，促进共同成长</li>
+                                <li>营造友善交流氛围</li>
+                                <li>鼓励原创内容</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 侧边栏 -->
+            <aside class="w-full lg:w-80 space-y-6">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div id="guestCard">
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto bg-gray-200 rounded-full flex items-center justify-center mb-3">
+                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                            </div>
+                            <p class="text-gray-600 text-sm mb-4">登录后解锁更多功能</p>
+                            <div class="flex space-x-2">
+                                <button onclick="openLoginModal()" class="flex-1 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium">登录</button>
+                                <button onclick="openRegisterModal()" class="flex-1 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium">注册</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="userCard" class="hidden">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <div class="avatar w-12 h-12 rounded-full flex items-center justify-center text-white font-bold" id="userAvatar">U</div>
+                            <div>
+                                <div class="font-medium text-gray-800" id="userName">用户</div>
+                                <div class="text-xs text-gray-500">Lv.1 新手上路</div>
+                            </div>
+                        </div>
+                        <button onclick="logout()" class="w-full py-2 text-gray-500 text-sm hover:text-red-500">退出登录</button>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="text-orange-500 mr-2">🔥</span>热门帖子
+                    </h3>
+                    <div class="space-y-3" id="sidebarHotPosts">
+                        <div class="text-center py-4 text-gray-400 text-sm">加载中...</div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <!-- 发帖弹窗 -->
+    <div id="postModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closePostModal()"></div>
+        <div class="modal-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="bg-white rounded-2xl shadow-2xl m-4">
+                <div class="flex items-center justify-between p-6 border-b">
+                    <h3 class="text-xl font-bold text-gray-800">发布新帖子</h3>
+                    <button onclick="closePostModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">帖子标题</label>
+                        <input type="text" id="postTitle" placeholder="请输入帖子标题" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择分类</label>
+                        <select id="postCategory" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                            <option value="前端">前端开发</option>
+                            <option value="后端">后端开发</option>
+                            <option value="移动开发">移动开发</option>
+                            <option value="数据库">数据库</option>
+                            <option value="运维">运维部署</option>
+                            <option value="职场">职场交流</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">帖子内容</label>
+                        <textarea id="postContent" rows="8" placeholder="请输入帖子内容..." 
+                                  class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 resize-none"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 p-6 border-t bg-gray-50 rounded-b-2xl">
+                    <button onclick="closePostModal()" class="px-6 py-2 border border-gray-200 text-gray-600 rounded-lg">取消</button>
+                    <button onclick="submitPost()" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">发布帖子</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 登录弹窗 -->
+    <div id="loginModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeLoginModal()"></div>
+        <div class="modal-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
+            <div class="bg-white rounded-2xl shadow-2xl m-4">
+                <div class="p-6 text-center border-b">
+                    <div class="w-16 h-16 mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4">
+                        <span class="text-white font-bold text-2xl">A</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800">欢迎登录 AZDC 论坛</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+                        <input type="text" id="loginUsername" placeholder="请输入用户名" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                        <input type="password" id="loginPassword" placeholder="请输入密码" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                    </div>
+                    <button onclick="doLogin()" class="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600">登录</button>
+                </div>
+                <div class="p-6 border-t text-center">
+                    <span class="text-gray-500 text-sm">还没有账号？</span>
+                    <button onclick="switchToRegister()" class="text-blue-500 text-sm font-medium">立即注册</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册弹窗 -->
+    <div id="registerModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeRegisterModal()"></div>
+        <div class="modal-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div class="bg-white rounded-2xl shadow-2xl m-4">
+                <div class="p-6 text-center border-b">
+                    <div class="w-16 h-16 mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4">
+                        <span class="text-white font-bold text-2xl">A</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800">注册账号</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+                        <input type="text" id="regUsername" placeholder="请输入用户名" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
+                        <input type="email" id="regEmail" placeholder="请输入邮箱" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                        <input type="password" id="regPassword" placeholder="至少6位" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">确认密码</label>
+                        <input type="password" id="regConfirmPassword" placeholder="再次输入密码" 
+                               class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                    </div>
+                    <button onclick="doRegister()" class="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600">注册</button>
+                </div>
+                <div class="p-6 border-t text-center">
+                    <span class="text-gray-500 text-sm">已有账号？</span>
+                    <button onclick="switchToLogin()" class="text-blue-500 text-sm font-medium">立即登录</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let currentUser = null;
+        let currentPostId = null;
+        let currentCategory = 'all';
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPosts();
+            loadHotPosts();
+            loadSidebarHotPosts();
+            checkLoginStatus();
+        });
+
+        // ==================== 帖子相关 ====================
+        async function loadPosts() {
+            const postList = document.getElementById('postList');
+            postList.innerHTML = '<div class="text-center py-12 text-gray-400">加载中...</div>';
+            
+            try {
+                const params = new URLSearchParams();
+                if (currentCategory !== 'all') params.append('category', currentCategory);
+                
+                const res = await fetch(`${API_BASE}/posts?${params}`);
+                const posts = await res.json();
+                
+                if (posts.length === 0) {
+                    postList.innerHTML = '<div class="text-center py-12 text-gray-400">暂无相关帖子</div>';
+                    return;
+                }
+                
+                postList.innerHTML = posts.map(post => `
+                    <div class="post-card bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all duration-300" onclick="viewPost(${post.id})">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-gradient-to-r ${post.avatar_color} rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+                                ${post.avatar}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs rounded-full">${post.category}</span>
+                                    <span class="text-sm text-gray-500">${post.author}</span>
+                                    <span class="text-sm text-gray-400">· ${post.time}</span>
+                                </div>
+                                <h3 class="font-medium text-gray-800 mb-2 hover:text-blue-500 truncate">${post.title}</h3>
+                                <p class="text-sm text-gray-500 line-clamp-2 mb-3">${post.content.substring(0, 100)}...</p>
+                                <div class="flex items-center space-x-6 text-sm text-gray-400">
+                                    <span>👁 ${post.views}</span>
+                                    <span>💬 ${post.comments}</span>
+                                    <span>👍 ${post.likes}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                postList.innerHTML = '<div class="text-center py-12 text-red-400">加载失败，请刷新重试</div>';
+            }
+        }
+
+        async function viewPost(id) {
+            currentPostId = id;
+            
+            document.getElementById('homePage').classList.add('hidden');
+            document.getElementById('boardPage').classList.add('hidden');
+            document.getElementById('hotPage').classList.add('hidden');
+            document.getElementById('aboutPage').classList.add('hidden');
+            document.getElementById('postDetailPage').classList.remove('hidden');
+            
+            document.getElementById('postDetail').innerHTML = '<div class="text-center py-12 text-gray-400">加载中...</div>';
+            
+            try {
+                const res = await fetch(`${API_BASE}/posts/${id}`);
+                const post = await res.json();
+                
+                document.getElementById('postDetail').innerHTML = `
+                    <div class="mb-4">
+                        <span class="px-3 py-1 bg-blue-100 text-blue-600 text-sm rounded-full">${post.category}</span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800 mb-4">${post.title}</h1>
+                    <div class="flex items-center space-x-4 pb-4 border-b mb-6">
+                        <div class="w-10 h-10 bg-gradient-to-r ${post.avatar_color} rounded-full flex items-center justify-center text-white font-medium">
+                            ${post.avatar}
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-700">${post.author}</div>
+                            <div class="text-sm text-gray-400">${post.time} · ${post.views} 浏览</div>
+                        </div>
+                    </div>
+                    <div class="text-gray-700 whitespace-pre-line leading-relaxed">${post.content}</div>
+                    <div class="flex items-center space-x-6 mt-8 pt-6 border-t">
+                        <button onclick="likePost(${post.id})" class="flex items-center space-x-2 text-gray-500 hover:text-red-500">
+                            <span>👍</span><span>${post.likes}</span>
+                        </button>
+                        <button class="flex items-center space-x-2 text-gray-500 hover:text-blue-500">
+                            <span>🔗</span><span>分享</span>
+                        </button>
+                        <button class="flex items-center space-x-2 text-gray-500 hover:text-green-500">
+                            <span>⭐</span><span>收藏</span>
+                        </button>
+                    </div>
+                `;
+                
+                renderComments(post.commentList);
+            } catch (e) {
+                document.getElementById('postDetail').innerHTML = '<div class="text-center py-12 text-red-400">加载失败</div>';
+            }
+        }
+
+        function renderComments(comments) {
+            document.getElementById('commentCount').textContent = comments.length;
+            const commentList = document.getElementById('commentList');
+            
+            if (comments.length === 0) {
+                commentList.innerHTML = '<div class="text-center py-8 text-gray-400">暂无评论，快来抢沙发~</div>';
+                return;
+            }
+            
+            commentList.innerHTML = comments.map(c => `
+                <div class="flex space-x-3 py-4 border-b last:border-b-0">
+                    <div class="w-9 h-9 bg-gradient-to-r ${c.avatar_color} rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+                        ${c.avatar}
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="text-sm font-medium text-gray-700">${c.author}</span>
+                            <span class="text-xs text-gray-400">${c.time}</span>
+                        </div>
+                        <p class="text-sm text-gray-600">${c.content}</p>
+                        <div class="flex items-center space-x-4 mt-2 text-xs text-gray-400">
+                            <button>👍 ${c.likes}</button>
+                            <button>回复</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function submitPost() {
+            if (!currentUser) {
+                alert('请先登录');
+                openLoginModal();
+                return;
+            }
+            
+            const title = document.getElementById('postTitle').value.trim();
+            const category = document.getElementById('postCategory').value;
+            const content = document.getElementById('postContent').value.trim();
+            
+            if (!title || !content) {
+                alert('请填写完整');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/posts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        content,
+                        category,
+                        author: currentUser.username,
+                        avatar: currentUser.username.charAt(0),
+                        avatarColor: 'from-blue-400 to-purple-500'
+                    })
+                });
+                
+                if (res.ok) {
+                    alert('发布成功！');
+                    closePostModal();
+                    document.getElementById('postTitle').value = '';
+                    document.getElementById('postContent').value = '';
+                    loadPosts();
+                    loadSidebarHotPosts();
+                    loadHotPosts();
+                }
+            } catch (e) {
+                alert('发布失败');
+            }
+        }
+
+        async function submitComment() {
+            if (!currentUser) {
+                alert('请先登录');
+                openLoginModal();
+                return;
+            }
+            
+            const content = document.getElementById('commentInput').value.trim();
+            if (!content) {
+                alert('请输入评论内容');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/posts/${currentPostId}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        author: currentUser.username,
+                        avatar: currentUser.username.charAt(0),
+                        avatarColor: 'from-blue-400 to-purple-500',
+                        content
+                    })
+                });
+                
+                if (res.ok) {
+                    document.getElementById('commentInput').value = '';
+                    viewPost(currentPostId);
+                    loadPosts();
+                }
+            } catch (e) {
+                alert('评论失败');
+            }
+        }
+
+        async function likePost(id) {
+            try {
+                await fetch(`${API_BASE}/posts/${id}/like`, { method: 'POST' });
+                viewPost(id);
+                loadPosts();
+                loadSidebarHotPosts();
+                loadHotPosts();
+            } catch (e) {}
+        }
+
+        // ==================== 热门 & 侧边栏 ====================
+        async function loadHotPosts() {
+            try {
+                const res = await fetch(`${API_BASE}/posts?sort=hot`);
+                const posts = await res.json();
+                
+                document.getElementById('hotPostList').innerHTML = posts.map(post => `
+                    <div class="post-card bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all" onclick="viewPost(${post.id})">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-gradient-to-r ${post.avatar_color} rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+                                ${post.avatar}
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <span class="px-2 py-0.5 bg-orange-100 text-orange-600 text-xs rounded-full">🔥 热门</span>
+                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs rounded-full">${post.category}</span>
+                                </div>
+                                <h3 class="font-medium text-gray-800 mb-2 hover:text-blue-500">${post.title}</h3>
+                                <div class="flex items-center space-x-6 text-sm text-gray-400">
+                                    <span>${post.likes} 赞</span>
+                                    <span>${post.comments} 评论</span>
+                                    <span>${post.views} 浏览</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {}
+        }
+
+        async function loadSidebarHotPosts() {
+            try {
+                const res = await fetch(`${API_BASE}/posts?sort=views`);
+                const posts = await res.json().slice(0, 5);
+                
+                document.getElementById('sidebarHotPosts').innerHTML = posts.map((post, i) => `
+                    <div class="flex items-start space-x-3 cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-2 rounded" onclick="viewPost(${post.id})">
+                        <span class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-xs font-bold rounded ${i < 3 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-600'}">${i+1}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm text-gray-700 truncate hover:text-blue-500">${post.title}</p>
+                            <p class="text-xs text-gray-400 mt-1">${post.views} 浏览</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {}
+        }
+
+        // ==================== 分类 & 搜索 ====================
+        function filterCategory(category, element) {
+            currentCategory = category;
+            
+            const tags = document.querySelectorAll('.category-tag');
+            tags.forEach(tag => {
+                tag.classList.remove('bg-blue-500', 'text-white');
+                tag.classList.add('bg-white', 'text-gray-600', 'border');
+            });
+            
+            if (element) {
+                element.classList.remove('bg-white', 'text-gray-600', 'border');
+                element.classList.add('bg-blue-500', 'text-white');
+            }
+            
+            document.getElementById('boardPage').classList.add('hidden');
+            document.getElementById('homePage').classList.remove('hidden');
+            
+            loadPosts();
+        }
+
+        async function searchPosts() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword) {
+                loadPosts();
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/posts?keyword=${encodeURIComponent(keyword)}`);
+                const posts = await res.json();
+                
+                const postList = document.getElementById('postList');
+                if (posts.length === 0) {
+                    postList.innerHTML = '<div class="text-center py-12 text-gray-400">没有找到相关帖子</div>';
+                    return;
+                }
+                
+                postList.innerHTML = posts.map(post => `
+                    <div class="post-card bg-white rounded-xl shadow-sm p-5 cursor-pointer transition-all" onclick="viewPost(${post.id})">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-gradient-to-r ${post.avatar_color} rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+                                ${post.avatar}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-600 text-xs rounded-full">${post.category}</span>
+                                    <span class="text-sm text-gray-500">${post.author}</span>
+                                </div>
+                                <h3 class="font-medium text-gray-800 mb-2 hover:text-blue-500 truncate">${post.title}</h3>
+                                <p class="text-sm text-gray-500 line-clamp-2 mb-3">${post.content.substring(0, 100)}...</p>
+                                <div class="flex items-center space-x-6 text-sm text-gray-400">
+                                    <span>👁 ${post.views}</span>
+                                    <span>💬 ${post.comments}</span>
+                                    <span>👍 ${post.likes}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {}
+        }
+
+        // ==================== 页面切换 ====================
+        function showPage(page) {
+            document.getElementById('homePage').classList.add('hidden');
+            document.getElementById('boardPage').classList.add('hidden');
+            document.getElementById('hotPage').classList.add('hidden');
+            document.getElementById('aboutPage').classList.add('hidden');
+            document.getElementById('postDetailPage').classList.add('hidden');
+            
+            const links = document.querySelectorAll('.nav-link');
+            links.forEach(link => link.classList.remove('active'));
+            
+            switch(page) {
+                case 'home':
+                    document.getElementById('homePage').classList.remove('hidden');
+                    links[0].classList.add('active');
+                    break;
+                case 'board':
+                    document.getElementById('boardPage').classList.remove('hidden');
+                    links[1].classList.add('active');
+                    break;
+                case 'hot':
+                    document.getElementById('hotPage').classList.remove('hidden');
+                    links[2].classList.add('active');
+                    break;
+                case 'about':
+                    document.getElementById('aboutPage').classList.remove('hidden');
+                    links[3].classList.add('active');
+                    break;
+            }
+            
+            document.getElementById('mobileMenu').classList.add('hidden');
+        }
+
+        function backToList() {
+            document.getElementById('postDetailPage').classList.add('hidden');
+            document.getElementById('homePage').classList.remove('hidden');
+            currentPostId = null;
+            loadPosts();
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        }
+
+        // ==================== 弹窗控制 ====================
+        function openPostModal() {
+            if (!currentUser) { alert('请先登录'); openLoginModal(); return; }
+            document.getElementById('postModal').classList.remove('hidden');
+        }
+        function closePostModal() { document.getElementById('postModal').classList.add('hidden'); }
+
+        function openLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
+
+        function openRegisterModal() { document.getElementById('registerModal').classList.remove('hidden'); }
+        function closeRegisterModal() { document.getElementById('registerModal').classList.add('hidden'); }
+
+        function switchToRegister() { closeLoginModal(); openRegisterModal(); }
+        function switchToLogin() { closeRegisterModal(); openLoginModal(); }
+
+        // ==================== 用户系统 ====================
+        async function doLogin() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!username || !password) {
+                alert('请输入用户名和密码');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    currentUser = { username };
+                    localStorage.setItem('azdc_user', JSON.stringify(currentUser));
+                    updateUserUI();
+                    closeLoginModal();
+                } else {
+                    alert(data.error || '登录失败');
+                }
+            } catch (e) {
+                alert('登录失败，请检查服务是否启动');
+            }
+        }
+
+        async function doRegister() {
+            const username = document.getElementById('regUsername').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+            
+            if (!username || !password) { alert('请填写完整'); return; }
+            if (password.length < 6) { alert('密码至少6位'); return; }
+            if (password !== confirmPassword) { alert('两次密码不一致'); return; }
+            
+            try {
+                const res = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, email })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    alert('注册成功！');
+                    currentUser = { username };
+                    localStorage.setItem('azdc_user', JSON.stringify(currentUser));
+                    updateUserUI();
+                    closeRegisterModal();
+                } else {
+                    alert(data.error || '注册失败');
+                }
+            } catch (e) {
+                alert('注册失败，请检查服务是否启动');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('azdc_user');
+            updateUserUI();
+        }
+
+        function checkLoginStatus() {
+            const saved = localStorage.getItem('azdc_user');
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                updateUserUI();
+            }
+        }
+
+        function updateUserUI() {
+            const guestCard = document.getElementById('guestCard');
+            const userCard = document.getElementById('userCard');
+            const userArea = document.getElementById('userArea');
+            
+            if (currentUser) {
+                guestCard.classList.add('hidden');
+                userCard.classList.remove('hidden');
+                document.getElementById('userName').textContent = currentUser.username;
+                document.getElementById('userAvatar').textContent = currentUser.username.charAt(0);
+                userArea.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="avatar w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium">${currentUser.username.charAt(0)}</div>
+                        <span class="text-sm text-gray-700 hidden sm:inline">${currentUser.username}</span>
+                    </div>
+                `;
+            } else {
+                guestCard.classList.remove('hidden');
+                userCard.classList.add('hidden');
+                userArea.innerHTML = `<button onclick="openLoginModal()" class="px-4 py-2 text-gray-600 hover:text-blue-500 text-sm font-medium">登录</button>`;
+            }
+        }
+    </script>
+</body>
+</html>
