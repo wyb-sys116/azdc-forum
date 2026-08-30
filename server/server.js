@@ -1,15 +1,15 @@
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 中间件
+// 中间件（用express内置json解析替代body-parser，减少依赖）
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json({ limit: '1mb' }));
+
+// 托管前端静态文件
 app.use(express.static(path.join(__dirname, '../public')));
 
 // 数据文件路径
@@ -106,196 +106,235 @@ function formatTime(timestamp) {
 initData();
 
 // ==================== API 接口 ====================
-
 // 获取帖子列表
 app.get('/api/posts', (req, res) => {
-  const { category, keyword, sort = 'time' } = req.query;
-  const data = readData();
-  let posts = [...data.posts];
-  
-  // 分类筛选
-  if (category && category !== 'all') {
-    posts = posts.filter(p => p.category === category);
+  try {
+    const { category, keyword, sort = 'time' } = req.query;
+    const data = readData();
+    let posts = [...data.posts];
+    
+    // 分类筛选
+    if (category && category !== 'all') {
+      posts = posts.filter(p => p.category === category);
+    }
+    
+    // 关键词搜索
+    if (keyword) {
+      const kw = keyword.toLowerCase();
+      posts = posts.filter(p => 
+        p.title.toLowerCase().includes(kw) || 
+        p.content.toLowerCase().includes(kw) ||
+        p.author.toLowerCase().includes(kw)
+      );
+    }
+    
+    // 排序
+    if (sort === 'hot') {
+      posts.sort((a, b) => b.likes - a.likes);
+    } else if (sort === 'views') {
+      posts.sort((a, b) => b.views - a.views);
+    } else {
+      posts.sort((a, b) => b.created_at - a.created_at);
+    }
+    
+    // 格式化输出
+    const result = posts.map(post => ({
+      ...post,
+      time: formatTime(post.created_at)
+    }));
+    
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: '获取帖子列表失败' });
   }
-  
-  // 关键词搜索
-  if (keyword) {
-    const kw = keyword.toLowerCase();
-    posts = posts.filter(p => 
-      p.title.toLowerCase().includes(kw) || 
-      p.content.toLowerCase().includes(kw) ||
-      p.author.toLowerCase().includes(kw)
-    );
-  }
-  
-  // 排序
-  if (sort === 'hot') {
-    posts.sort((a, b) => b.likes - a.likes);
-  } else if (sort === 'views') {
-    posts.sort((a, b) => b.views - a.views);
-  } else {
-    posts.sort((a, b) => b.created_at - a.created_at);
-  }
-  
-  // 格式化输出
-  const result = posts.map(post => ({
-    ...post,
-    time: formatTime(post.created_at)
-  }));
-  
-  res.json(result);
 });
 
 // 获取帖子详情
 app.get('/api/posts/:id', (req, res) => {
-  const data = readData();
-  const post = data.posts.find(p => p.id == req.params.id);
-  
-  if (!post) {
-    return res.status(404).json({ error: '帖子不存在' });
+  try {
+    const data = readData();
+    const post = data.posts.find(p => p.id == req.params.id);
+    
+    if (!post) {
+      return res.status(404).json({ error: '帖子不存在' });
+    }
+    
+    // 增加浏览量
+    post.views++;
+    writeData(data);
+    
+    // 格式化评论
+    const commentList = post.commentList.map(c => ({
+      ...c,
+      time: formatTime(c.created_at)
+    }));
+    
+    res.json({
+      ...post,
+      time: formatTime(post.created_at),
+      commentList
+    });
+  } catch (err) {
+    res.status(500).json({ error: '获取帖子详情失败' });
   }
-  
-  // 增加浏览量
-  post.views++;
-  writeData(data);
-  
-  // 格式化评论
-  const commentList = post.commentList.map(c => ({
-    ...c,
-    time: formatTime(c.created_at)
-  }));
-  
-  res.json({
-    ...post,
-    time: formatTime(post.created_at),
-    commentList
-  });
 });
 
 // 发布帖子
 app.post('/api/posts', (req, res) => {
-  const { title, content, category, author, avatar, avatarColor } = req.body;
-  
-  if (!title || !content || !category || !author) {
-    return res.status(400).json({ error: '参数不完整' });
+  try {
+    const { title, content, category, author, avatar, avatarColor } = req.body;
+    
+    if (!title || !content || !category || !author) {
+      return res.status(400).json({ error: '参数不完整' });
+    }
+    
+    const data = readData();
+    const newPost = {
+      id: Date.now(),
+      title,
+      content,
+      category,
+      author,
+      avatar,
+      avatar_color: avatarColor || 'from-blue-400 to-purple-500',
+      views: 0,
+      likes: 0,
+      comments: 0,
+      created_at: Date.now(),
+      commentList: []
+    };
+    
+    data.posts.unshift(newPost);
+    writeData(data);
+    
+    res.json({
+      ...newPost,
+      time: '刚刚'
+    });
+  } catch (err) {
+    res.status(500).json({ error: '发布帖子失败' });
   }
-  
-  const data = readData();
-  const newPost = {
-    id: Date.now(),
-    title,
-    content,
-    category,
-    author,
-    avatar,
-    avatar_color: avatarColor || 'from-blue-400 to-purple-500',
-    views: 0,
-    likes: 0,
-    comments: 0,
-    created_at: Date.now(),
-    commentList: []
-  };
-  
-  data.posts.unshift(newPost);
-  writeData(data);
-  
-  res.json({
-    ...newPost,
-    time: '刚刚'
-  });
 });
 
 // 点赞帖子
 app.post('/api/posts/:id/like', (req, res) => {
-  const data = readData();
-  const post = data.posts.find(p => p.id == req.params.id);
-  
-  if (!post) {
-    return res.status(404).json({ error: '帖子不存在' });
+  try {
+    const data = readData();
+    const post = data.posts.find(p => p.id == req.params.id);
+    
+    if (!post) {
+      return res.status(404).json({ error: '帖子不存在' });
+    }
+    
+    post.likes++;
+    writeData(data);
+    
+    res.json({ likes: post.likes });
+  } catch (err) {
+    res.status(500).json({ error: '点赞失败' });
   }
-  
-  post.likes++;
-  writeData(data);
-  
-  res.json({ likes: post.likes });
 });
 
 // 发表评论
 app.post('/api/posts/:id/comments', (req, res) => {
-  const { author, avatar, avatarColor, content } = req.body;
-  
-  if (!author || !content) {
-    return res.status(400).json({ error: '参数不完整' });
+  try {
+    const { author, avatar, avatarColor, content } = req.body;
+    
+    if (!author || !content) {
+      return res.status(400).json({ error: '参数不完整' });
+    }
+    
+    const data = readData();
+    const post = data.posts.find(p => p.id == req.params.id);
+    
+    if (!post) {
+      return res.status(404).json({ error: '帖子不存在' });
+    }
+    
+    const newComment = {
+      id: Date.now(),
+      author,
+      avatar,
+      avatar_color: avatarColor || 'from-blue-400 to-purple-500',
+      content,
+      likes: 0,
+      created_at: Date.now()
+    };
+    
+    post.commentList.unshift(newComment);
+    post.comments++;
+    writeData(data);
+    
+    res.json({
+      ...newComment,
+      time: '刚刚'
+    });
+  } catch (err) {
+    res.status(500).json({ error: '发表评论失败' });
   }
-  
-  const data = readData();
-  const post = data.posts.find(p => p.id == req.params.id);
-  
-  if (!post) {
-    return res.status(404).json({ error: '帖子不存在' });
-  }
-  
-  const newComment = {
-    id: Date.now(),
-    author,
-    avatar,
-    avatar_color: avatarColor || 'from-blue-400 to-purple-500',
-    content,
-    likes: 0,
-    created_at: Date.now()
-  };
-  
-  post.commentList.unshift(newComment);
-  post.comments++;
-  writeData(data);
-  
-  res.json({
-    ...newComment,
-    time: '刚刚'
-  });
 });
 
 // 用户注册
 app.post('/api/register', (req, res) => {
-  const { username, password, email } = req.body;
-  
-  if (!username || !password) {
-    return res.status(400).json({ error: '用户名和密码不能为空' });
+  try {
+    const { username, password, email } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: '用户名和密码不能为空' });
+    }
+    
+    const data = readData();
+    
+    if (data.users.find(u => u.username === username)) {
+      return res.status(400).json({ error: '用户名已存在' });
+    }
+    
+    data.users.push({
+      id: Date.now(),
+      username,
+      password,
+      email: email || '',
+      created_at: Date.now()
+    });
+    
+    writeData(data);
+    res.json({ success: true, username });
+  } catch (err) {
+    res.status(500).json({ error: '注册失败' });
   }
-  
-  const data = readData();
-  
-  if (data.users.find(u => u.username === username)) {
-    return res.status(400).json({ error: '用户名已存在' });
-  }
-  
-  data.users.push({
-    id: Date.now(),
-    username,
-    password,
-    email: email || '',
-    created_at: Date.now()
-  });
-  
-  writeData(data);
-  res.json({ success: true, username });
 });
 
 // 用户登录
 app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-  const data = readData();
-  
-  const user = data.users.find(u => u.username === username && u.password === password);
-  
-  if (user) {
-    res.json({ success: true, username: user.username });
-  } else {
-    res.status(400).json({ error: '用户名或密码错误' });
+  try {
+    const { username, password } = req.body;
+    const data = readData();
+    
+    const user = data.users.find(u => u.username === username && u.password === password);
+    
+    if (user) {
+      res.json({ success: true, username: user.username });
+    } else {
+      res.status(400).json({ error: '用户名或密码错误' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: '登录失败' });
   }
+});
+
+// 兜底路由：刷新页面时返回首页，避免404
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// 全局错误处理
+app.use((err, req, res, next) => {
+  console.error('服务错误:', err);
+  res.status(500).json({ error: '服务器内部错误' });
 });
 
 // 启动服务
 app.listen(PORT, () => {
-  console.log(`AZDC论坛服务已启动: http://localhost:${PORT}`);
+  console.log(`✅ AZDC论坛服务已启动，监听端口: ${PORT}`);
+  console.log(`📍 本地访问: http://localhost:${PORT}`);
 });
